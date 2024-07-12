@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styles from "./project.module.css";
-import { collection, getDocs, getFirestore } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  getFirestore,
+  onSnapshot,
+} from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 
 // Initialize Firebase
@@ -21,28 +26,22 @@ interface Project {
   name: string;
   description: string;
   link: string;
+  id: string;
 }
 
 const ProjectDetails: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
 
-  const fetchProjects = async () => {
-    const projectsCollection = collection(db, "projects");
-    const projectSnapshot = await getDocs(projectsCollection);
-    const projectList = projectSnapshot.docs.map(
-      (doc) => doc.data() as Project
-    );
-    return projectList;
-  };
-
-  const getProjects = async () => {
-    const projectsData = await fetchProjects();
-    console.log("Fetched Projects:", projectsData);
-    setProjects(projectsData);
-  };
-
   useEffect(() => {
-    getProjects();
+    const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {
+      const updatedProjects: Project[] = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })) as Project[];
+      setProjects(updatedProjects);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
